@@ -21,6 +21,7 @@
     ~/.config/git/hooks/pre-push: config/git/hooks/pre-push
     ~/.config/htop/htoprc: config/htop/htoprc
     ~/.config/environment.d/10-local-bin.conf: config/environment.d/10-local-bin.conf
+    ~/.config/environment.d/20-locale.conf: config/environment.d/20-locale.conf
     ~/.config/nvim/init.lua: config/nvim/init.lua
     ~/.config/nvim/lua: config/nvim/lua
     ~/.config/nvim/after: config/nvim/after

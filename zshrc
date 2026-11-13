@@ -13,6 +13,8 @@ source "$ZSH/oh-my-zsh.sh"
 # Tokyo Night CLI Readability & Highlighting Fixes
 # ------------------------------------------------------------------------------
 export COLORTERM="truecolor"
+export LANG="en_IN.UTF-8"
+export LC_CTYPE="en_IN.UTF-8"
 
 # 1. Fix LS_COLORS: eliminate unreadable blue-on-neon-green world-writable dirs (ow=34;42)
 if command -v dircolors >/dev/null 2>&1; then
@@ -65,6 +67,7 @@ export LESS_TERMCAP_us=$'\e[1;36m'
 # User Aliases, Functions & PATH
 # ------------------------------------------------------------------------------
 alias vim="nvim"
+alias tmux="tmux -u"
 
 function runc() {
   g++ "$1" && ./a.out < input.txt
