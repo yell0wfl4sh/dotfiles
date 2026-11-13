@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+"""GTK3-backed wl-paste fallback when wl-clipboard is not installed.
+
+Delegates to /usr/bin/wl-paste if the native binary is present; otherwise
+reads Wayland/X11 clipboard contents via GTK3.
+"""
+
+import argparse
+import os
+import sys
+
+
+NATIVE_BIN = "/usr/bin/wl-paste"
+
+
+def maybe_exec_native() -> None:
+    if os.path.exists(NATIVE_BIN) and os.access(NATIVE_BIN, os.X_OK):
+        os.execv(NATIVE_BIN, [NATIVE_BIN, *sys.argv[1:]])
+
+
+def main() -> int:
+    maybe_exec_native()
+
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("-l", "--list-types", action="store_true")
+    parser.add_argument("-n", "--no-newline", action="store_true")
+    parser.add_argument("-p", "--primary", action="store_true")
+    parser.add_argument("-t", "--type", dest="mime_type", default=None)
+    parser.add_argument("-h", "--help", action="store_true")
+    args, _ = parser.parse_known_args()
+
+    if args.help:
+        sys.stdout.write(
+            "Usage: wl-paste [-lnp] [-t MIME]\n"
+            "GTK3 Wayland/X11 clipboard shim (delegates to /usr/bin/wl-paste if installed).\n"
+        )
+        return 0
+
+    if os.environ.get("DISPLAY"):
+        os.environ["GDK_BACKEND"] = "x11"
+    import gi
+
+    gi.require_version("Gtk", "3.0")
+    gi.require_version("Gdk", "3.0")
+    from gi.repository import Gdk, Gtk
+
+    ok, _ = Gtk.init_check([])
+    if not ok:
+        return 1
+
+    sel_atom = Gdk.SELECTION_PRIMARY if args.primary else Gdk.SELECTION_CLIPBOARD
+    cb = Gtk.Clipboard.get(sel_atom)
+
+    if args.list_types:
+        ok_targets, targets = cb.wait_for_targets()
+        if not ok_targets or not targets:
+            return 1
+        for target in targets:
+            sys.stdout.write(f"{target.name()}\n")
+        return 0
+
+    if args.mime_type:
+        sel_data = cb.wait_for_contents(Gdk.Atom.intern(args.mime_type, False))
+        if sel_data is None:
+            return 1
+        payload = sel_data.get_data()
+        sys.stdout.buffer.write(payload)
+        if args.mime_type.startswith("text/") and not args.no_newline and not payload.endswith(b"\n"):
+            sys.stdout.buffer.write(b"\n")
+        return 0
+
+    text = cb.wait_for_text()
+    if text is None:
+        return 1
+    payload = text.encode("utf-8")
+    sys.stdout.buffer.write(payload)
+    if not args.no_newline and not payload.endswith(b"\n"):
+        sys.stdout.buffer.write(b"\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

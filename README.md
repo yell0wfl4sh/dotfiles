@@ -8,7 +8,8 @@ Unified **Tokyo Night** Linux CLI, ZSH, Starship, Tmux, Terminator, Neovim, and 
 | :--- | :--- | :--- | :--- |
 | **ZSH** | `zshrc` | `~/.zshrc` | Oh My Zsh + Starship init, Tokyo Night syntax/autosuggestions, `LS_COLORS` (`ow`/`tw`) & `zle_highlight` paste/selection fixes |
 | **Starship Prompt** | `config/starship.toml` | `~/.config/starship.toml` | Tokyo Night Rounded Powerline Pills (~30–50ms render) |
-| **Tmux** | `tmux.conf` | `~/.tmux.conf` | `Ctrl+z` prefix, `vi` mode, `tmux-256color` 24-bit RGB passthrough, `#2e3c64` copy-mode highlight, Tokyo Night pill status bar |
+| **Tmux** | `tmux.conf` | `~/.tmux.conf` | `Ctrl+z` prefix, `vi` mode, `tmux-256color` 24-bit RGB passthrough, `#2e3c64` copy-mode highlight, persistent selection on mouse release (`copy-pipe-no-clear`), Tokyo Night pill status bar |
+| **Clipboard Shims** | `local/bin/wl-copy`, `local/bin/wl-paste` | `~/.local/bin/` | GTK3-backed Wayland/X11 clipboard bridge for `tmux` and `agy` when `wl-clipboard` is not installed (auto-delegates to `/usr/bin/wl-*` if present) |
 | **Terminator & GNOME Terminal** | `config/terminator/config` | `~/.config/terminator/config` | `#1a1b26` Tokyo Night 16-color palette, `94%` opacity, `JetBrainsMono Nerd Font 11` |
 | **Neovim** | `config/nvim/` | `~/.config/nvim/` | Lua config (`telescope`, `treesitter`, `lsp-zero`) |
 | **Git & Secret Guard** | `gitconfig`, `config/git/` | `~/.gitconfig`, `~/.config/git/` | Global `gitleaks` `pre-commit` & `pre-push` secret-blocking hooks + global ignore rules |

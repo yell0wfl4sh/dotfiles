@@ -25,6 +25,8 @@
     ~/.config/nvim/init.lua: config/nvim/init.lua
     ~/.config/nvim/lua: config/nvim/lua
     ~/.config/nvim/after: config/nvim/after
+    ~/.local/bin/wl-copy: local/bin/wl-copy
+    ~/.local/bin/wl-paste: local/bin/wl-paste
 
 - shell:
   - [bash scripts/bootstrap-tokyo-night.sh, Installing Starship, JetBrainsMono Nerd Font & syncing GNOME Terminal]

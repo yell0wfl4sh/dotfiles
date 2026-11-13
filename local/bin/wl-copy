@@ -1,0 +1,184 @@
+#!/usr/bin/env python3
+"""GTK3-backed wl-copy fallback when wl-clipboard is not installed.
+
+Delegates to /usr/bin/wl-copy if the native binary is present; otherwise
+serves Wayland/X11 clipboard ownership via GTK3 in a background daemon.
+"""
+
+import argparse
+import os
+import signal
+import sys
+
+
+NATIVE_BIN = "/usr/bin/wl-copy"
+
+
+def maybe_exec_native() -> None:
+    if os.path.exists(NATIVE_BIN) and os.access(NATIVE_BIN, os.X_OK):
+        os.execv(NATIVE_BIN, [NATIVE_BIN, *sys.argv[1:]])
+
+
+def pidfile_path(primary: bool) -> str:
+    runtime_dir = os.environ.get("XDG_RUNTIME_DIR") or "/tmp"
+    sel = "primary" if primary else "clipboard"
+    return os.path.join(runtime_dir, f"wl-copy-{os.getuid()}-{sel}.pid")
+
+
+def stop_previous_daemon(path: str) -> None:
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            old_pid = int(fh.read().strip())
+    except (OSError, ValueError):
+        return
+    if old_pid <= 0 or old_pid == os.getpid():
+        return
+    try:
+        with open(f"/proc/{old_pid}/cmdline", "rb") as fh:
+            cmdline = fh.read().decode("utf-8", errors="ignore")
+    except OSError:
+        return
+    if "wl-copy" not in cmdline:
+        return
+    try:
+        os.kill(old_pid, signal.SIGTERM)
+    except OSError:
+        pass
+
+
+def daemonize_and_redirect_stdio() -> None:
+    pid = os.fork()
+    if pid > 0:
+        os._exit(0)
+    os.setsid()
+    devnull = os.open(os.devnull, os.O_RDWR)
+    try:
+        os.dup2(devnull, 0)
+        os.dup2(devnull, 1)
+        os.dup2(devnull, 2)
+    finally:
+        if devnull > 2:
+            os.close(devnull)
+
+
+def serve_clipboard(data: bytes, primary: bool, clear: bool, mime_type: str | None, pfile: str) -> int:
+    if os.environ.get("DISPLAY"):
+        os.environ["GDK_BACKEND"] = "x11"
+    import gi
+
+    gi.require_version("Gtk", "3.0")
+    gi.require_version("Gdk", "3.0")
+    from gi.repository import Gdk, GLib, Gtk
+
+    ok, _ = Gtk.init_check([])
+    if not ok:
+        return 1
+
+    stop_previous_daemon(pfile)
+    try:
+        with open(pfile, "w", encoding="utf-8") as fh:
+            fh.write(str(os.getpid()))
+    except OSError:
+        pass
+
+    sel_atom = Gdk.SELECTION_PRIMARY if primary else Gdk.SELECTION_CLIPBOARD
+    cb = Gtk.Clipboard.get(sel_atom)
+
+    if clear:
+        cb.clear()
+        cb.set_text("", 0)
+        cb.store()
+        while Gtk.events_pending():
+            Gtk.main_iteration_do(False)
+        return 0
+
+    text = data.decode("utf-8", errors="replace")
+    if mime_type and not mime_type.startswith("text/"):
+        target = Gtk.TargetEntry.new(mime_type, 0, 0)
+
+        def on_get(_cb, selection_data, _info, payload):
+            selection_data.set(Gdk.Atom.intern(mime_type, False), 8, payload)
+
+        def on_clear(_cb, _user_data):
+            pass
+
+        cb.set_with_data([target], on_get, on_clear, data)
+    else:
+        cb.set_text(text, -1)
+        cb.set_can_store(None)
+        cb.store()
+
+    loop = GLib.MainLoop()
+    state = {"armed": False}
+
+    def arm_owner_watch() -> bool:
+        state["armed"] = True
+        return False
+
+    def on_owner_change(_cb, _event) -> None:
+        if state["armed"] and loop.is_running():
+            loop.quit()
+
+    cb.connect("owner-change", on_owner_change)
+    GLib.timeout_add(200, arm_owner_watch)
+
+    def handle_sig(*_args) -> None:
+        if loop.is_running():
+            loop.quit()
+
+    signal.signal(signal.SIGTERM, handle_sig)
+    signal.signal(signal.SIGINT, handle_sig)
+
+    try:
+        loop.run()
+    finally:
+        try:
+            with open(pfile, "r", encoding="utf-8") as fh:
+                if fh.read().strip() == str(os.getpid()):
+                    os.unlink(pfile)
+        except OSError:
+            pass
+    return 0
+
+
+def main() -> int:
+    maybe_exec_native()
+
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("-c", "--clear", action="store_true")
+    parser.add_argument("-p", "--primary", action="store_true")
+    parser.add_argument("-n", "--trim-newline", action="store_true")
+    parser.add_argument("-f", "--foreground", action="store_true")
+    parser.add_argument("-o", "--paste-once", action="store_true")
+    parser.add_argument("-t", "--type", dest="mime_type", default=None)
+    parser.add_argument("-h", "--help", action="store_true")
+    args, rest = parser.parse_known_args()
+
+    if args.help:
+        sys.stdout.write(
+            "Usage: wl-copy [-cpnfo] [-t MIME] [TEXT...]\n"
+            "GTK3 Wayland/X11 clipboard shim (delegates to /usr/bin/wl-copy if installed).\n"
+        )
+        return 0
+
+    data = b""
+    if not args.clear:
+        if rest:
+            data = " ".join(rest).encode("utf-8")
+        else:
+            data = sys.stdin.buffer.read()
+        if args.trim_newline:
+            if data.endswith(b"\r\n"):
+                data = data[:-2]
+            elif data.endswith(b"\n"):
+                data = data[:-1]
+
+    pfile = pidfile_path(args.primary)
+    if not args.foreground and not args.clear:
+        daemonize_and_redirect_stdio()
+
+    return serve_clipboard(data, args.primary, args.clear, args.mime_type, pfile)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
