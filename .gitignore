@@ -1,0 +1,49 @@
+# Secrets, credentials & keys (Zero-Tolerance Block)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.kdbx
+id_rsa*
+id_dsa*
+id_ecdsa*
+id_ed25519*
+!*.pub
+*oauth*
+*token*
+*secret*
+*credential*
+!*.example
+!*.example.json
+
+# Databases, dumps & local state
+*.sql
+*.sql.gz
+*.db
+*.db.gz
+*.sqlite
+*.sqlite3
+*.pb
+*.pbtxt
+*.log
+
+# Shell / editor history & swap files
+*history*
+*.swp
+*.swo
+*~
+.netrwhist
+.zcompdump*
+plugin/packer_compiled.lua
+
+# Held-back local/host-specific configs (see ≥70% sensitivity triage)
+AGENTS.md
+settings.json
+hosts.yml
+monitors.xml
+systemd/

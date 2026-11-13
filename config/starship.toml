@@ -1,0 +1,131 @@
+"$schema" = 'https://starship.rs/config-schema.json'
+
+palette = 'tokyo_night'
+add_newline = true
+command_timeout = 1000
+
+format = """
+[](purple)\
+$username\
+[](bg:blue fg:purple)\
+$directory\
+[](fg:blue)\
+$git_branch\
+$git_status\
+$c\
+$cpp\
+$rust\
+$golang\
+$nodejs\
+$python\
+$java\
+$scala\
+$docker_context\
+$fill\
+$cmd_duration\
+$line_break\
+$character"""
+
+[palettes.tokyo_night]
+bg = '#1a1b26'
+mantle = '#16161e'
+surface = '#24283b'
+fg = '#c0caf5'
+muted = '#565f89'
+red = '#f7768e'
+green = '#9ece6a'
+yellow = '#e0af68'
+blue = '#7aa2f7'
+purple = '#bb9af7'
+cyan = '#7dcfff'
+orange = '#ff9e64'
+
+[os]
+disabled = true
+
+[username]
+show_always = true
+style_user = "bg:purple fg:mantle bold"
+style_root = "bg:red fg:mantle bold"
+format = '[ $user ]($style)'
+
+[directory]
+style = "bg:blue fg:mantle bold"
+format = "[  $path ]($style)"
+truncation_length = 4
+truncate_to_repo = false
+truncation_symbol = "…/"
+
+[directory.substitutions]
+"Documents" = "󰈙 Docs"
+"Downloads" = " Downloads"
+"Music" = " Music"
+"Pictures" = " Pictures"
+
+[git_branch]
+symbol = ""
+style = "bg:surface fg:green bold"
+format = ' [](surface)[$symbol $branch]($style)[](surface)'
+
+[git_status]
+style = "bg:surface fg:yellow bold"
+format = '( [](surface)[$all_status$ahead_behind]($style)[](surface))'
+modified = "!${count}"
+staged = "+${count}"
+untracked = "?${count}"
+deleted = "✘${count}"
+ahead = "⇡${count}"
+behind = "⇣${count}"
+
+[nodejs]
+symbol = ""
+style = "bg:mantle fg:green"
+format = ' [](mantle)[$symbol ($version)]($style)[](mantle)'
+
+[python]
+symbol = ""
+style = "bg:mantle fg:yellow"
+format = ' [](mantle)[$symbol ($version)( \($virtualenv\))]($style)[](mantle)'
+
+[rust]
+symbol = ""
+style = "bg:mantle fg:orange"
+format = ' [](mantle)[$symbol ($version)]($style)[](mantle)'
+
+[golang]
+symbol = ""
+style = "bg:mantle fg:cyan"
+format = ' [](mantle)[$symbol ($version)]($style)[](mantle)'
+
+[c]
+symbol = ""
+style = "bg:mantle fg:blue"
+format = ' [](mantle)[$symbol ($version)]($style)[](mantle)'
+
+[java]
+symbol = ""
+style = "bg:mantle fg:orange"
+format = ' [](mantle)[$symbol ($version)]($style)[](mantle)'
+
+[scala]
+symbol = ""
+style = "bg:mantle fg:red"
+format = ' [](mantle)[$symbol ($version)]($style)[](mantle)'
+
+[docker_context]
+symbol = ""
+style = "bg:mantle fg:cyan"
+format = ' [](mantle)[$symbol $context]($style)[](mantle)'
+
+[fill]
+symbol = " "
+
+[cmd_duration]
+min_time = 500
+style = "fg:yellow"
+format = "[ $duration]($style)"
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+vimcmd_symbol = "[❮](bold purple)"

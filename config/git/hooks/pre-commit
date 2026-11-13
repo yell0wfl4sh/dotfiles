@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# Global Git pre-commit hook: hard-blocks staged secret files, keys, dumps, and leaked credentials.
+set -euo pipefail
+
+# 1. Chain repo-local pre-commit hook first if present
+GIT_DIR="$(git rev-parse --git-dir)"
+if [[ -x "${GIT_DIR}/hooks/pre-commit" ]]; then
+  "${GIT_DIR}/hooks/pre-commit" "$@"
+fi
+
+# Collect staged files (Added, Copied, Modified, Renamed)
+mapfile -t STAGED_FILES < <(git diff --cached --name-only --diff-filter=ACMR)
+if [[ ${#STAGED_FILES[@]} -eq 0 ]]; then
+  exit 0
+fi
+
+# 2. Strict filename guardrail (blocks even `git add -f` on secret/credential/dump files)
+BLOCKED_FILES=()
+for f in "${STAGED_FILES[@]}"; do
+  base="$(basename "$f")"
+  lower_base="${base,,}"
+
+  # Allow safe template filenames explicitly
+  if [[ "$lower_base" =~ \.(example|sample|template)$ ]] || [[ "$lower_base" == *.pub ]]; then
+    continue
+  fi
+
+  if [[ "$lower_base" == ".env" ]] \
+    || [[ "$lower_base" == .env.* ]] \
+    || [[ "$lower_base" =~ \.(pem|key|p12|pfx|jks|keystore|kdbx)$ ]] \
+    || [[ "$lower_base" =~ ^id_(rsa|dsa|ecdsa|ed25519) ]] \
+    || [[ "$lower_base" =~ (oauth_creds|client_secret|service_account).*\.json$ ]] \
+    || [[ "$lower_base" == "credentials.json" ]] \
+    || [[ "$lower_base" =~ \.(sql\.gz|db\.gz|sqlite|sqlite3)$ ]]; then
+    BLOCKED_FILES+=("$f")
+  fi
+done
+
+if [[ ${#BLOCKED_FILES[@]} -gt 0 ]]; then
+  echo "ERROR [secret-guard]: Refusing to commit sensitive/secret file(s):" >&2
+  for bf in "${BLOCKED_FILES[@]}"; do
+    echo "  - ${bf}" >&2
+  done
+  echo "Unstage with 'git restore --staged <file>', add to .gitignore, and commit a sanitized .example template instead." >&2
+  exit 1
+fi
+
+# 3. Scan staged content with gitleaks (default rules + strict password/URI rules)
+GITLEAKS_BIN="${HOME}/.local/bin/gitleaks"
+GITLEAKS_CFG="${HOME}/.config/git/gitleaks.toml"
+
+if [[ ! -x "${GITLEAKS_BIN}" ]]; then
+  GITLEAKS_BIN="$(command -v gitleaks || true)"
+fi
+
+if [[ -z "${GITLEAKS_BIN}" ]]; then
+  echo "ERROR [secret-guard]: gitleaks binary not found at ~/.local/bin/gitleaks; blocking commit fail-closed." >&2
+  exit 1
+fi
+
+CFG_ARGS=()
+if [[ -f "${GITLEAKS_CFG}" ]]; then
+  CFG_ARGS=(--config "${GITLEAKS_CFG}")
+fi
+
+"${GITLEAKS_BIN}" git --staged --redact --no-banner -v "${CFG_ARGS[@]}"

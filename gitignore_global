@@ -1,3 +1,28 @@
-*.pyc
-*~
-*.sw*
+# Global sensitive & local-only exclusions
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+
+# Private keys, certificates & credential bundles
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+!*.pub
+*oauth_creds*.json
+*client_secret*.json
+*service_account*.json
+
+# Raw database & state dumps
+*.sql.gz
+*.db.gz
+*.sqlite
+*.sqlite3

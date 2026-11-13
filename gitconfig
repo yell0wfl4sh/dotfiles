@@ -1,24 +1,13 @@
-[core]
-    excludesfile = /home/yash/.gitignore_global
-    autocrlf = input
 [user]
-    name = Yash Agrawal
-    email = yagrawal900@gmail.com
-    username = yashagrawal3
-[color]
-    ui = true
-[push]
-    default = matching
-[alias]
-    wip = commit -am "WIP"
-    trash = !git add . && git commit -m 'trash' && git reset --hard HEAD^
-    stpp = subtree push --prefix dist origin master
-[diff]
-    tool = vimdiff
-[difftool]
-    prompt = false
-[rerere]
-    enabled = true
-    autoupdate = true
+	name = Yash Agrawal
+	email = yagrawal900@gmail.com
+[credential "https://github.com"]
+	helper = 
+	helper = !gh auth git-credential
+[credential "https://gist.github.com"]
+	helper = 
+	helper = !gh auth git-credential
+[core]
+	hooksPath = ~/.config/git/hooks
 [init]
-
+	defaultBranch = main

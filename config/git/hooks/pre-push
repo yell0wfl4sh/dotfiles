@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# Global Git pre-push hook: scans every outgoing commit range for secrets before upload.
+set -euo pipefail
+
+# 1. Chain repo-local pre-push hook first if present
+GIT_DIR="$(git rev-parse --git-dir)"
+if [[ -x "${GIT_DIR}/hooks/pre-push" ]]; then
+  # Pass stdin through to local hook as well
+  STDIN_COPY="$(cat)"
+  printf '%s\n' "${STDIN_COPY}" | "${GIT_DIR}/hooks/pre-push" "$@"
+else
+  STDIN_COPY="$(cat)"
+fi
+
+GITLEAKS_BIN="${HOME}/.local/bin/gitleaks"
+GITLEAKS_CFG="${HOME}/.config/git/gitleaks.toml"
+
+if [[ ! -x "${GITLEAKS_BIN}" ]]; then
+  GITLEAKS_BIN="$(command -v gitleaks || true)"
+fi
+
+if [[ -z "${GITLEAKS_BIN}" ]]; then
+  echo "ERROR [secret-guard]: gitleaks binary not found at ~/.local/bin/gitleaks; blocking push fail-closed." >&2
+  exit 1
+fi
+
+CFG_ARGS=()
+if [[ -f "${GITLEAKS_CFG}" ]]; then
+  CFG_ARGS=(--config "${GITLEAKS_CFG}")
+fi
+
+ZERO_OID="0000000000000000000000000000000000000000"
+
+while read -r local_ref local_oid remote_ref remote_oid; do
+  [[ -z "${local_ref:-}" ]] && continue
+  # Deleting a remote branch has nothing to scan
+  if [[ "${local_oid}" == "${ZERO_OID}" ]]; then
+    continue
+  fi
+
+  if [[ "${remote_oid}" == "${ZERO_OID}" ]]; then
+    # New remote branch: scan commits not yet on any remote branch
+    LOG_OPTS="${local_oid} --not --remotes"
+  else
+    LOG_OPTS="${remote_oid}..${local_oid}"
+  fi
+
+  # Skip if commit range is empty
+  if [[ -z "$(git rev-list ${LOG_OPTS} 2>/dev/null || true)" ]]; then
+    continue
+  fi
+
+  "${GITLEAKS_BIN}" git --redact --no-banner -v "${CFG_ARGS[@]}" --log-opts="${LOG_OPTS}"
+done <<< "${STDIN_COPY}"

@@ -1,0 +1,26 @@
+title = "Strict Global Gitleaks Config (Default Rules + Password & Connection URI Guards)"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "connection-uri-with-password"
+description = "Database or broker connection URI with embedded password"
+regex = '''(?i)\b(?:postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|redis|rediss|amqp|amqps)://[^:\s/@'"`]+:([^@\s'"`]{4,})@'''
+secretGroup = 1
+[rules.allowlist]
+regexTarget = "secret"
+regexes = [
+  '''(?i)^(?:password|pass|pwd|postgres|root|user|changeme|example|placeholder|secret|test|xxx+|\$\{.*\}|<.*>|\{\{.*\}\})$''',
+]
+
+[[rules]]
+id = "explicit-password-assignment"
+description = "Hardcoded password, app_password, or secret assignment"
+regex = '''(?i)\b(?:app[_-]?password|db[_-]?password|postgres[_-]?password|imap[_-]?password|smtp[_-]?password|admin[_-]?password|user[_-]?password|master[_-]?password|secret[_-]?key[_-]?base|password|passwd|pwd)\b\s*(?:=|:)\s*['"`]([^'"`\s]{6,})['"`]'''
+secretGroup = 1
+[rules.allowlist]
+regexTarget = "secret"
+regexes = [
+  '''(?i)^(?:password|pass|pwd|changeme|example|placeholder|your[_-].*|replace[_-].*|dummy.*|test.*|fake.*|sample.*|none|null|todo|xxx+|\*+|\.+|<.*>|\$\{.*\}|\$[A-Z_]+|\{\{.*\}\}|%[sd])$''',
+]

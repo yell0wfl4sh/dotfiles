@@ -2,36 +2,28 @@
     link:
       create: true
       relink: true
+      force: true
 
 - clean: ['~']
 
-# null (or ~) value means symlink from file with same name without leading dot
 - link:
-    ~/.dotfiles: ''
-
-    # zsh & terminator
-    ~/.oh-my-zsh: ~
-    ~/antigen: ~
-    ~/.zshrc: ~
-    ~/.fonts: ~
-    ~/.fzf: ~
-    ~/.config/terminator: config/terminator
-
-    # git
-    ~/.gitconfig: ~
-    ~/.gitignore_global: ~
-
-    # vim
-    ~/.vimrc: ~
-    ~/.vim/bundle: vim/bundle
-
-    # nvm
-    ~/.nvm: ~
+    ~/.zshrc: zshrc
+    ~/.bashrc: bashrc
+    ~/.profile: profile
+    ~/.tmux.conf: tmux.conf
+    ~/.gitconfig: gitconfig
+    ~/.gitignore_global: gitignore_global
+    ~/.config/starship.toml: config/starship.toml
+    ~/.config/terminator/config: config/terminator/config
+    ~/.config/git/gitleaks.toml: config/git/gitleaks.toml
+    ~/.config/git/ignore: config/git/ignore
+    ~/.config/git/hooks/pre-commit: config/git/hooks/pre-commit
+    ~/.config/git/hooks/pre-push: config/git/hooks/pre-push
+    ~/.config/htop/htoprc: config/htop/htoprc
+    ~/.config/environment.d/10-local-bin.conf: config/environment.d/10-local-bin.conf
+    ~/.config/nvim/init.lua: config/nvim/init.lua
+    ~/.config/nvim/lua: config/nvim/lua
+    ~/.config/nvim/after: config/nvim/after
 
 - shell:
-  - [git submodule update --init --recursive, Installing submodules]
-  - [fc-cache -f ~/.fonts, Rebuilding font cache]
-  - [~/.fzf/install --all, Installing fzf]
-  - [vim +PluginInstall +qall, Installing vim plugins with Vundle]
-  - [node -v, Remember to install node with "nvm install node"]
-
+  - [bash scripts/bootstrap-tokyo-night.sh, Installing Starship, JetBrainsMono Nerd Font & syncing GNOME Terminal]
