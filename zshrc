@@ -76,6 +76,12 @@ function runc() {
 # Added by Antigravity CLI installer
 export PATH="$HOME/.local/bin:$PATH"
 
+# Use PulseAudio socket when active so tools like agy voice select parec/paplay
+# instead of PipeWire tools (which have no audio nodes on this system).
+if [ -z "$PULSE_SERVER" ] && [ -S "${XDG_RUNTIME_DIR:-/run/user/$UID}/pulse/native" ]; then
+  export PULSE_SERVER="unix:${XDG_RUNTIME_DIR:-/run/user/$UID}/pulse/native"
+fi
+
 # Initialize Starship Prompt
 if command -v starship >/dev/null 2>&1; then
   eval "$(starship init zsh)"
